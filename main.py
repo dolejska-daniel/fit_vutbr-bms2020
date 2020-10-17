@@ -53,15 +53,25 @@ if __name__ == '__main__':
 
         if args["stream"]:
             while data_in := sys.stdin.read(1):
-                data_out = encoder.encode(data_in)
+                logging.debug("encoding input data: '%s'", data_in)
+                data_out = encoder.encode(data_in, flush_filter=False)
 
                 # print out resulting data
                 for out_pair in data_out:
                     for out_char in out_pair:
                         print(out_char, end="", flush=True)
 
+            data_out = encoder.encode("", flush_filter=True)
+
+            # print out resulting data
+            for out_pair in data_out:
+                for out_char in out_pair:
+                    print(out_char, end="", flush=True)
+
         else:
-            data_out = encoder.encode("\n".join(sys.stdin.readlines()))
+            data_in = "".join(sys.stdin.readlines())
+            logging.debug("encoding input data: '%s'", data_in)
+            data_out = encoder.encode(data_in)
 
             # print out resulting data
             for out_pair in data_out:
@@ -71,8 +81,10 @@ if __name__ == '__main__':
     elif args["mode"] is OperationMode.DECODE:
         decoder = ConvolutionalDecoder(memory_stage_count, feedback_masks)
 
-        # data_out = decoder.decode(sys.stdin.readline())
-        data_out = decoder.decode("001001110110011110001010101001111010011001101101111011101001000001000010100100100001101011")
+        data_in = sys.stdin.readline().strip()
+        logging.debug("decoding input data: '%s'", data_in)
+        data_out = decoder.decode(data_in)
+
         result_cost, result = data_out[0]
         print(result)
 

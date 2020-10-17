@@ -1,7 +1,6 @@
 import logging
-from collections import deque
-
 import typing
+from collections import deque
 
 from convolution_filter import ConvolutionFilter
 
@@ -11,10 +10,23 @@ logger = logging.getLogger("encoder")
 class ConvolutionalEncoder(object):
 
     def __init__(self, stage_count: int, feedback_masks: typing.List[int]):
+        """
+        Initializes convolutional encoder.
+
+        :param stage_count: number of memory blocks
+        :param feedback_masks: list of feedback masks of memory blocks
+        """
         self.filter = ConvolutionFilter(stage_count, feedback_masks)
 
     @classmethod
     def str_to_int_binary(cls, data_in: str) -> typing.List[int]:
+        """
+        Converts ASCII string to list of integers (1, 0) representing binary
+        encoded characters.
+
+        :param data_in: ASCII string to be converted
+        :return: binary sequence
+        """
         data_binary = []
 
         # for each character in input data
@@ -34,22 +46,30 @@ class ConvolutionalEncoder(object):
             logger.debug("storing in reverse order %s", ''.join(map(lambda x: str(x), char_binary)))
             data_binary += char_binary
 
-        # reverse the order from MSB->LSB to LSB->MSB
-        # this allows for simple `deque.popleft()` to get data bit by bit
-        data_binary.reverse()
-
         return data_binary
 
     def encode(self, data_in: str, flush_filter=True) -> typing.List[typing.List[int]]:
+        """
+        Encodes provided ASCII string to binary sequence.
+
+        :param data_in: ASCII string to be encoded
+        :param flush_filter: should convolution filter values be flushed?
+        :return:
+        """
         # convert input to "binary" integers
-        data_in_binary = self._str_to_int_binary(data_in)
+        data_in_binary = self.str_to_int_binary(data_in)
+        # reverse the order from MSB->LSB to LSB->MSB
+        # this allows for simple `deque.popleft()` to get data bit by bit
+        data_in_binary.reverse()
+
         # create collection to `pop` from
         data_in_binary = deque(data_in_binary)
         # create output collection to `appendleft` to
         data_out = deque([])
 
-        # initialize convolution stages
-        self.filter.initialize()
+        if self.filter.empty:
+            # initialize convolution stages
+            self.filter.initialize()
 
         # until there is no content in input data list do
         while data_in_binary:

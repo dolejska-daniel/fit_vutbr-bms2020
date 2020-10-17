@@ -1,8 +1,7 @@
 import logging
-from collections import deque
+from queue import PriorityQueue
 
 from utils import *
-from queue import PriorityQueue
 
 logger = logging.getLogger("decoder")
 
@@ -10,6 +9,12 @@ logger = logging.getLogger("decoder")
 class ConvolutionalDecoder(object):
 
     def __init__(self, stage_count: int, feedback_masks: typing.List[int]):
+        """
+        Initializes convolutional decoder.
+
+        :param stage_count: number of memory blocks
+        :param feedback_masks: list of feedback masks of memory blocks
+        """
         self.stage_count = stage_count
         self.feedback_masks = feedback_masks
 
@@ -27,30 +32,43 @@ class ConvolutionalDecoder(object):
         self._lowest_iteration_cost = defaultdict(dict)
 
     def _initialize_decoder(self):
+        """ Re-initializes priority queue and list of best path costs. """
         self._unprocessed_states = PriorityQueue()
         self._lowest_iteration_cost = defaultdict(dict)
 
     def _create_unprocessed_state(self, state_cost: int, current_state: str, data_out: typing.List[int], data_in: str):
+        """ Creates new unprocessed state and stores it to priority queue (ordered by path cost). """
         self._unprocessed_states.put((state_cost, current_state, data_out, data_in))
 
     def _get_unprocessed_state(self) -> typing.Tuple[int, str, typing.List[int], str]:
+        """ Returns currently best unprocessed state from priority queue (ordered by path cost). """
         return self._unprocessed_states.get()
 
     def _get_best_path_cost(self, current_iteration: int, current_state: str) -> typing.Union[int, None]:
+        """ Returns currently best registered solution path for given iteration and state. """
         if current_state not in self._lowest_iteration_cost[current_iteration]:
             return None
 
         return self._lowest_iteration_cost[current_iteration][current_state]
 
     def _does_better_path_exist(self, current_iteration: int, current_cost: int, current_state: str) -> bool:
+        """ Determines whether better path exists for given iteration and state. """
         current_best_cost = self._get_best_path_cost(current_iteration, current_state)
         return current_best_cost <= current_cost if current_best_cost is not None else False
 
     def _register_best_path_cost(self, current_iteration: int, current_cost: int, current_state: str):
+        """ Saves new best path cost for given iteration and state. """
         self._lowest_iteration_cost[current_iteration][current_state] = current_cost
 
     @classmethod
     def int_binary_to_str(cls, data_in: typing.List[int]) -> str:
+        """
+        Converts list of integers (1, 0) representing binary encoded characters
+        to ASCII string.
+
+        :param data_in: binary sequence to be converted
+        :return: ASCII string
+        """
         if len(data_in) < 8:
             # there is not enough bytes for whole byte
             return ""
@@ -80,6 +98,13 @@ class ConvolutionalDecoder(object):
         return "".join(result)
 
     def decode(self, data_in: str, max_result_count: int = 3) -> typing.List[typing.Tuple[int, str]]:
+        """
+        Decodes provided binary sequence to ASCII string.
+
+        :param data_in: binary sequence to be decoded
+        :param max_result_count: maximum number of possible interpretations returned
+        :return: decoded ASCII string
+        """
         # re-initialize inner decoder state
         self._initialize_decoder()
         # create initial state to process

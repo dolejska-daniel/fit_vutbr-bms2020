@@ -2,12 +2,20 @@ import logging
 import typing
 from collections import deque
 
+from utils import State
+
 logger = logging.getLogger("filter")
 
 
 class ConvolutionFilter(object):
 
     def __init__(self, stage_count: int, feedback_masks: typing.List[int]):
+        """
+        Initializes convolution filter.
+
+        :param stage_count: number of memory blocks
+        :param feedback_masks: list of feedback masks of memory blocks
+        """
         self.stage_count = stage_count
         self.feedback_masks = feedback_masks
 
@@ -17,14 +25,21 @@ class ConvolutionFilter(object):
         return str(self.state)
 
     @property
-    def state(self) -> typing.List[int]:
-        return list(self._memory)
+    def state(self) -> State:
+        """ Returns current filter state. """
+        return State(list(self._memory))
 
     @property
     def empty(self) -> bool:
+        """ Returns true is the filter is empty. """
         return not bool(self._memory)
 
-    def initialize(self, state: typing.List[int] = None):
+    def initialize(self, state: State = None):
+        """
+        Initializes filter state either to provided state or default state 0s.
+
+        :param state: target filter state
+        """
         if state and len(state) != self.stage_count:
             logger.critical("invalid initialization state vector %s", state)
             raise RuntimeError("Tried to initialize invalid filter state.")
@@ -32,19 +47,31 @@ class ConvolutionFilter(object):
         self._memory = state if state else deque([0 for _ in range(self.stage_count)])
         logger.debug("%s - convolution filter initialized", self)
 
-    def insert_and_shift(self, element: int):
+    def insert_and_shift(self, memory_bit: int):
+        """
+        Shifts the filter state right and inserts new element at the MSB position.
+
+        :param memory_bit: bit value (0, 1) to be stored
+        """
         # insert new element at the MSB position - "shift" everything right
-        self._memory.appendleft(element)
+        self._memory.appendleft(memory_bit)
         # remove last extra element (at the LSB position)
         self._memory.pop()
-        logger.debug("%s - inserted '%d' and shifted right", self, element)
+        logger.debug("%s - inserted '%d' and shifted right", self, memory_bit)
 
     def shift(self):
+        """ Shifts the filter state right (does not add any new elements - can empty the filter). """
         # "shift" everything right
         self._memory.pop()
         logger.debug("%s - shifted right", self)
 
     def output_for(self, current_bit: typing.Union[int, None]) -> typing.List[int]:
+        """
+        Encodes provided bit value based on current filter state.
+
+        :param current_bit: bit value (0, 1) to be encoded
+        :returns: encoded binary sequence
+        """
         outputs = [0 for _ in self.feedback_masks]
         current_state = [current_bit] + self.state if current_bit is not None else self.state
         logger.debug("%s - calculating output with current state", current_state)
