@@ -17,11 +17,11 @@ class ConvolutionFilter(object):
         return str(self.state)
 
     @property
-    def state(self):
+    def state(self) -> typing.List[int]:
         return list(self._memory)
 
     @property
-    def empty(self):
+    def empty(self) -> bool:
         return not bool(self._memory)
 
     def initialize(self, state: typing.List[int] = None):
@@ -44,7 +44,7 @@ class ConvolutionFilter(object):
         self._memory.pop()
         logger.debug("%s - shifted right", self)
 
-    def output_for(self, current_bit: int) -> typing.List[int]:
+    def output_for(self, current_bit: typing.Union[int, None]) -> typing.List[int]:
         outputs = [0 for _ in self.feedback_masks]
         current_state = [current_bit] + self.state if current_bit is not None else self.state
         logger.debug("%s - calculating output with current state", current_state)

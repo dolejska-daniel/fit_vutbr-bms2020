@@ -4,6 +4,8 @@ from argparse import ArgumentParser
 from collections import deque
 from enum import Enum, auto
 
+from convolutional_decoder import ConvolutionalDecoder
+
 
 class OperationMode(Enum):
     ENCODE = auto()
@@ -67,23 +69,11 @@ if __name__ == '__main__':
                     print(out_char, end="", flush=True)
 
     elif args["mode"] is OperationMode.DECODE:
-        from viterbi import viterbi_own
+        decoder = ConvolutionalDecoder(memory_stage_count, feedback_masks)
 
-        paths = viterbi_own(memory_stage_count, feedback_masks)
-        result_binary = paths[0][1]
-
-        result = deque([])
-        byte_value = 0
-        for bit_index, bit in enumerate(result_binary):
-            if bit_index % 8 == 0 and bit_index > 0:
-                result.appendleft(chr(byte_value))
-                byte_value = 0
-                if bit_index + 8 > len(result_binary):
-                    break
-
-            byte_value += pow(2, bit_index % 8) * bit
-
-        result = "".join(result)
+        # data_out = decoder.decode(sys.stdin.readline())
+        data_out = decoder.decode("001001110110011110001010101001111010011001101101111011101001000001000010100100100001101011")
+        result_cost, result = data_out[0]
         print(result)
 
     else:

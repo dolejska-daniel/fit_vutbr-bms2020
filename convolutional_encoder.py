@@ -14,7 +14,7 @@ class ConvolutionalEncoder(object):
         self.filter = ConvolutionFilter(stage_count, feedback_masks)
 
     @classmethod
-    def _str_to_int_binary(cls, data_in: str) -> typing.List[int]:
+    def str_to_int_binary(cls, data_in: str) -> typing.List[int]:
         data_binary = []
 
         # for each character in input data
@@ -40,7 +40,7 @@ class ConvolutionalEncoder(object):
 
         return data_binary
 
-    def encode(self, data_in: str, flush_filter=True):
+    def encode(self, data_in: str, flush_filter=True) -> typing.List[typing.List[int]]:
         # convert input to "binary" integers
         data_in_binary = self._str_to_int_binary(data_in)
         # create collection to `pop` from
@@ -68,4 +68,4 @@ class ConvolutionalEncoder(object):
             # empty the filter bits
             self.filter.shift()
 
-        return data_out
+        return list(data_out)
