@@ -44,7 +44,7 @@ class ConvolutionFilter(object):
         self._memory.pop()
         logger.debug("%s - shifted right", self)
 
-    def output_for(self, current_bit):
+    def output_for(self, current_bit: int) -> typing.List[int]:
         outputs = [0 for _ in self.feedback_masks]
         current_state = [current_bit] + self.state if current_bit is not None else self.state
         logger.debug("%s - calculating output with current state", current_state)

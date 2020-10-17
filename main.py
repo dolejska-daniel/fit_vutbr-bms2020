@@ -1,6 +1,7 @@
 import logging
 import sys
 from argparse import ArgumentParser
+from collections import deque
 from enum import Enum, auto
 
 
@@ -34,8 +35,8 @@ if __name__ == '__main__':
     if len(args["params"]) < 2:
         parser.error("invalid parameter specification")
 
-    args["memory_stage_count"] = args["params"][0]
-    args["feedback_masks"] = args["params"][1:]
+    memory_stage_count = args["params"][0]
+    feedback_masks = args["params"][1:]
 
     log_level = logging.ERROR - min(args["verbose"], logging.ERROR // 10) * 10
     logging.basicConfig(
@@ -46,7 +47,7 @@ if __name__ == '__main__':
 
     if args["mode"] is OperationMode.ENCODE:
         from convolutional_encoder import ConvolutionalEncoder
-        encoder = ConvolutionalEncoder(args["memory_stage_count"], args["feedback_masks"])
+        encoder = ConvolutionalEncoder(memory_stage_count, feedback_masks)
 
         if args["stream"]:
             while data_in := sys.stdin.read(1):
@@ -66,7 +67,24 @@ if __name__ == '__main__':
                     print(out_char, end="", flush=True)
 
     elif args["mode"] is OperationMode.DECODE:
-        raise NotImplemented("This mode has not been implemented yet.")
+        from viterbi import viterbi_own
+
+        paths = viterbi_own(memory_stage_count, feedback_masks)
+        result_binary = paths[0][1]
+
+        result = deque([])
+        byte_value = 0
+        for bit_index, bit in enumerate(result_binary):
+            if bit_index % 8 == 0 and bit_index > 0:
+                result.appendleft(chr(byte_value))
+                byte_value = 0
+                if bit_index + 8 > len(result_binary):
+                    break
+
+            byte_value += pow(2, bit_index % 8) * bit
+
+        result = "".join(result)
+        print(result)
 
     else:
         raise RuntimeError("Unknown operation mode selected.")
