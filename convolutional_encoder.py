@@ -55,19 +55,17 @@ class ConvolutionalEncoder(object):
         while data_in_binary:
             # get current bit from the input data
             current_bit = data_in_binary.popleft()
+
+            data_out.appendleft(self.filter.output_for(current_bit))
+
             # update convolution filter - shift to right and add current bit
             self.filter.insert_and_shift(current_bit)
 
-            data_out.appendleft(self.filter.output)
-
         # until there is no content in convolution filter do
         while flush_filter and not self.filter.empty:
+            data_out.appendleft(self.filter.output_for(None))
+
             # empty the filter bits
             self.filter.shift()
-            # last shift safeguard
-            if self.filter.empty:
-                break
-
-            data_out.appendleft(self.filter.output)
 
         return data_out

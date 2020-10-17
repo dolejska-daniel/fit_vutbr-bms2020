@@ -8,21 +8,50 @@ logger = logging.getLogger("filter")
 class ConvolutionFilter(object):
 
     def __init__(self, stage_count: int, feedback_masks: typing.List[int]):
-        self.stage_count = stage_count + 1  # (+1) because of one stage for current bit
+        self.stage_count = stage_count
         self.feedback_masks = feedback_masks
 
-        self._filter = deque()
+        self._memory = deque()
 
     def __str__(self):
-        return f"[MSB] {' '.join(map(lambda x: str(x), self._filter))} [LSB]"
+        return str(self.state)
 
     @property
-    def output(self):
+    def state(self):
+        return list(self._memory)
+
+    @property
+    def empty(self):
+        return not bool(self._memory)
+
+    def initialize(self, state: typing.List[int] = None):
+        if state and len(state) != self.stage_count:
+            logger.critical("invalid initialization state vector %s", state)
+            raise RuntimeError("Tried to initialize invalid filter state.")
+
+        self._memory = state if state else deque([0 for _ in range(self.stage_count)])
+        logger.debug("%s - convolution filter initialized", self)
+
+    def insert_and_shift(self, element: int):
+        # insert new element at the MSB position - "shift" everything right
+        self._memory.appendleft(element)
+        # remove last extra element (at the LSB position)
+        self._memory.pop()
+        logger.debug("%s - inserted '%d' and shifted right", self, element)
+
+    def shift(self):
+        # "shift" everything right
+        self._memory.pop()
+        logger.debug("%s - shifted right", self)
+
+    def output_for(self, current_bit):
         outputs = [0 for _ in self.feedback_masks]
+        current_state = [current_bit] + self.state if current_bit is not None else self.state
+        logger.debug("%s - calculating output with current state", current_state)
 
         # for each bit in convolution filter do
         # (filter bits are in MSB->LSB order)
-        for filter_bit, filter_bit_index in zip(self._filter, range(len(self._filter) - 1, -1, -1)):
+        for filter_bit, filter_bit_index in zip(current_state, range(len(current_state) - 1, -1, -1)):
             # calculate bit mask from current index
             filter_bit_value = pow(2, filter_bit_index)
 
@@ -36,23 +65,3 @@ class ConvolutionFilter(object):
 
         # output two resulting bits
         return outputs
-
-    @property
-    def empty(self):
-        return not bool(self._filter)
-
-    def initialize(self):
-        self._filter = deque([0 for _ in range(self.stage_count)])
-        logger.debug("%s - convolution filter initialized", self)
-
-    def insert_and_shift(self, element: int):
-        # insert new element at the MSB position - "shift" everything right
-        self._filter.appendleft(element)
-        # remove last extra element (at the LSB position)
-        self._filter.pop()
-        logger.debug("%s - inserted '%d' and shifted right", self, element)
-
-    def shift(self):
-        # "shift" everything right
-        self._filter.pop()
-        logger.debug("%s - shifted right", self)
