@@ -13,13 +13,19 @@ if __name__ == '__main__':
     parser = ArgumentParser()
 
     mode_group = parser.add_mutually_exclusive_group()
-    mode_group.add_argument("-e", action="store_const", const=OperationMode.ENCODE, dest="mode")
-    mode_group.add_argument("-d", action="store_const", const=OperationMode.DECODE, dest="mode")
+    mode_group.add_argument("-e", action="store_const", const=OperationMode.ENCODE, dest="mode",
+                            help="perform encoding on input values")
+    mode_group.add_argument("-d", action="store_const", const=OperationMode.DECODE, dest="mode",
+                            help="perform decoding on input values")
 
-    parser.add_argument("--params", nargs="+", type=int, default=[5, 53, 46])
-
-    parser.add_argument("--stream", action="store_true", help="run program in stream mode", )
     parser.add_argument("-v", "--verbose", action="count", default=0, help="sets verbosity of logging (1-3)", )
+
+    params = parser.add_argument_group("algorithm parameters")
+    params.add_argument("--params", nargs="+", type=int, default=[5, 53, 46], metavar="X Y Z",
+                        help="customizable program parameters (X is number of memory blocks; "
+                             "Y,Z and other values are feedback memory bit masks per each output bit) "
+                             "[defaults: 5 53 46]")
+    params.add_argument("--stream", action="store_true", help="run program in stream mode", )
 
     args = parser.parse_args().__dict__
     if not args["mode"]:
@@ -45,6 +51,7 @@ if __name__ == '__main__':
         if args["stream"]:
             while data_in := sys.stdin.read(1):
                 data_out = encoder.encode(data_in)
+
                 # print out resulting data
                 for out_pair in data_out:
                     for out_char in out_pair:
