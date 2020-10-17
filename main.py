@@ -1,10 +1,7 @@
 import logging
 import sys
 from argparse import ArgumentParser
-from collections import deque
 from enum import Enum, auto
-
-from convolutional_decoder import ConvolutionalDecoder
 
 
 class OperationMode(Enum):
@@ -55,30 +52,22 @@ if __name__ == '__main__':
             while data_in := sys.stdin.read(1):
                 logging.debug("encoding input data: '%s'", data_in)
                 data_out = encoder.encode(data_in, flush_filter=False)
-
                 # print out resulting data
-                for out_pair in data_out:
-                    for out_char in out_pair:
-                        print(out_char, end="", flush=True)
+                print("".join(map(lambda x: str(x[0]) + str(x[1]), data_out)))
 
             data_out = encoder.encode("", flush_filter=True)
-
             # print out resulting data
-            for out_pair in data_out:
-                for out_char in out_pair:
-                    print(out_char, end="", flush=True)
+            print("".join(map(lambda x: str(x[0]) + str(x[1]), data_out)))
 
         else:
             data_in = "".join(sys.stdin.readlines())
             logging.debug("encoding input data: '%s'", data_in)
             data_out = encoder.encode(data_in)
-
             # print out resulting data
-            for out_pair in data_out:
-                for out_char in out_pair:
-                    print(out_char, end="", flush=True)
+            print("".join(map(lambda x: str(x[0]) + str(x[1]), data_out)))
 
     elif args["mode"] is OperationMode.DECODE:
+        from convolutional_decoder import ConvolutionalDecoder
         decoder = ConvolutionalDecoder(memory_stage_count, feedback_masks)
 
         data_in = sys.stdin.readline().strip()
