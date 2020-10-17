@@ -16,12 +16,20 @@ if __name__ == '__main__':
     mode_group.add_argument("-e", action="store_const", const=OperationMode.ENCODE, dest="mode")
     mode_group.add_argument("-d", action="store_const", const=OperationMode.DECODE, dest="mode")
 
+    parser.add_argument("--params", nargs="+", type=int, default=[5, 53, 46])
+
     parser.add_argument("--stream", action="store_true", help="run program in stream mode", )
     parser.add_argument("-v", "--verbose", action="count", default=0, help="sets verbosity of logging (1-3)", )
 
     args = parser.parse_args().__dict__
     if not args["mode"]:
         parser.error("mode option (either -e or -d) must be present")
+
+    if len(args["params"]) < 2:
+        parser.error("invalid parameter specification")
+
+    args["memory_stage_count"] = args["params"][0]
+    args["feedback_masks"] = args["params"][1:]
 
     log_level = logging.ERROR - min(args["verbose"], logging.ERROR // 10) * 10
     logging.basicConfig(
@@ -32,7 +40,7 @@ if __name__ == '__main__':
 
     if args["mode"] is OperationMode.ENCODE:
         from convolutional_encoder import ConvolutionalEncoder
-        encoder = ConvolutionalEncoder(5, [53, 46])
+        encoder = ConvolutionalEncoder(args["memory_stage_count"], args["feedback_masks"])
 
         if args["stream"]:
             while data_in := sys.stdin.read(1):
