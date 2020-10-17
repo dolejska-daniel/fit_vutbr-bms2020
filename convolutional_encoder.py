@@ -76,6 +76,7 @@ class ConvolutionalEncoder(object):
             # get current bit from the input data
             current_bit = data_in_binary.popleft()
 
+            # calculate encoder output for current data bit and filter state
             data_out.appendleft(self.filter.output_for(current_bit))
 
             # update convolution filter - shift to right and add current bit
@@ -83,6 +84,7 @@ class ConvolutionalEncoder(object):
 
         # until there is no content in convolution filter do
         while flush_filter and not self.filter.empty:
+            # flush values in the filter state one by one
             data_out.appendleft(self.filter.output_for(None))
 
             # empty the filter bits
