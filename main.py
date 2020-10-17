@@ -16,8 +16,8 @@ if __name__ == '__main__':
     mode_group.add_argument("-e", action="store_const", const=OperationMode.ENCODE, dest="mode")
     mode_group.add_argument("-d", action="store_const", const=OperationMode.DECODE, dest="mode")
 
-    parser.add_argument("-v", "--verbose", action="count", default=0,
-                        help="sets verbosity of logging (1-3)", )
+    parser.add_argument("--stream", action="store_true", help="run program in stream mode", )
+    parser.add_argument("-v", "--verbose", action="count", default=0, help="sets verbosity of logging (1-3)", )
 
     args = parser.parse_args().__dict__
     if not args["mode"]:
@@ -32,13 +32,23 @@ if __name__ == '__main__':
 
     if args["mode"] is OperationMode.ENCODE:
         from convolutional_encoder import ConvolutionalEncoder
-        encoder = ConvolutionalEncoder(5, 53, 46)
-        data_out = encoder.encode("\n".join(sys.stdin.readlines()))
+        encoder = ConvolutionalEncoder(5, [53, 46])
 
-        # print out resulting data
-        for out_pair in data_out:
-            for out_char in out_pair:
-                print(out_char, end="", flush=True)
+        if args["stream"]:
+            while data_in := sys.stdin.read(1):
+                data_out = encoder.encode(data_in)
+                # print out resulting data
+                for out_pair in data_out:
+                    for out_char in out_pair:
+                        print(out_char, end="", flush=True)
+
+        else:
+            data_out = encoder.encode("\n".join(sys.stdin.readlines()))
+
+            # print out resulting data
+            for out_pair in data_out:
+                for out_char in out_pair:
+                    print(out_char, end="", flush=True)
 
     elif args["mode"] is OperationMode.DECODE:
         raise NotImplemented("This mode has not been implemented yet.")

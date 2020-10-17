@@ -10,8 +10,8 @@ logger = logging.getLogger("encoder")
 
 class ConvolutionalEncoder(object):
 
-    def __init__(self, stage_count: int, msb_feedback: int, lsb_feedback: int):
-        self.filter = ConvolutionFilter(stage_count, msb_feedback, lsb_feedback)
+    def __init__(self, stage_count: int, feedback_masks: typing.List[int]):
+        self.filter = ConvolutionFilter(stage_count, feedback_masks)
 
     @classmethod
     def _str_to_int_binary(cls, data_in: str) -> typing.List[int]:
@@ -40,7 +40,7 @@ class ConvolutionalEncoder(object):
 
         return data_binary
 
-    def encode(self, data_in: str):
+    def encode(self, data_in: str, flush_filter=True):
         # convert input to "binary" integers
         data_in_binary = self._str_to_int_binary(data_in)
         # create collection to `pop` from
@@ -51,20 +51,22 @@ class ConvolutionalEncoder(object):
         # initialize convolution stages
         self.filter.initialize()
 
-        # until there is no content in input data list and convolution filter do
-        while data_in_binary or not self.filter.empty:
-            if data_in_binary:
-                # get current bit from the input data
-                current_bit = data_in_binary.popleft()
-                # update convolution filter - shift to right and add current bit
-                self.filter.insert_and_shift(current_bit)
+        # until there is no content in input data list do
+        while data_in_binary:
+            # get current bit from the input data
+            current_bit = data_in_binary.popleft()
+            # update convolution filter - shift to right and add current bit
+            self.filter.insert_and_shift(current_bit)
 
-            else:
-                # empty the filter bits
-                self.filter.shift()
-                # last shift safeguard
-                if self.filter.empty:
-                    break
+            data_out.appendleft(self.filter.output)
+
+        # until there is no content in convolution filter do
+        while flush_filter and not self.filter.empty:
+            # empty the filter bits
+            self.filter.shift()
+            # last shift safeguard
+            if self.filter.empty:
+                break
 
             data_out.appendleft(self.filter.output)
 

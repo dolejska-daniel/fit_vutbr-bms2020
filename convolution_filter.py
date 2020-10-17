@@ -1,4 +1,5 @@
 import logging
+import typing
 from collections import deque
 
 logger = logging.getLogger("filter")
@@ -6,10 +7,9 @@ logger = logging.getLogger("filter")
 
 class ConvolutionFilter(object):
 
-    def __init__(self, stage_count: int, msb_feedback: int, lsb_feedback: int):
+    def __init__(self, stage_count: int, feedback_masks: typing.List[int]):
         self.stage_count = stage_count + 1  # (+1) because of one stage for current bit
-        self.msb_feedback = msb_feedback
-        self.lsb_feedback = lsb_feedback
+        self.feedback_masks = feedback_masks
 
         self._filter = deque()
 
@@ -18,8 +18,7 @@ class ConvolutionFilter(object):
 
     @property
     def output(self):
-        output_msb = 0
-        output_lsb = 0
+        outputs = [0 for _ in self.feedback_masks]
 
         # for each bit in convolution filter do
         # (filter bits are in MSB->LSB order)
@@ -27,18 +26,16 @@ class ConvolutionFilter(object):
             # calculate bit mask from current index
             filter_bit_value = pow(2, filter_bit_index)
 
-            # does bit mask match with allowed MSB feedback value?
-            if filter_bit_value & self.msb_feedback:
-                output_msb ^= filter_bit  # perform binary XOR
+            # for each feedback mask (corresponding to result bit)
+            for output_bit_index, feedback_mask in enumerate(self.feedback_masks):
+                # does bit mask match with feedback mask?
+                if filter_bit_value & feedback_mask:
+                    outputs[output_bit_index] ^= filter_bit  # perform binary XOR
 
-            # does bit mask match with allowed LSB feedback value?
-            if filter_bit_value & self.lsb_feedback:
-                output_lsb ^= filter_bit  # perform binary XOR
-
-            logger.debug("bit_mask=%3d bit_value=%d out=%d%d", filter_bit_value, filter_bit, output_msb, output_lsb)
+            logger.debug("bit_mask=%3d bit_value=%d out=%s", filter_bit_value, filter_bit, outputs)
 
         # output two resulting bits
-        return [output_msb, output_lsb]
+        return outputs
 
     @property
     def empty(self):
