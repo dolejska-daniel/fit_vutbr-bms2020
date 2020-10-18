@@ -9,6 +9,70 @@ class OperationMode(Enum):
     DECODE = auto()
 
 
+def run(args):
+    logging.info("running in %s", args["mode"])
+    if args["mode"] is OperationMode.ENCODE:
+        # encoding mode - ASCII characters on STDIN, binary sequence to STDOUT
+        from convolutional_encoder import ConvolutionalEncoder
+        encoder = ConvolutionalEncoder(memory_stage_count, feedback_masks)
+
+        def print_encoded(d, inline: bool = False):
+            print("".join(map(lambda x: "".join(map(lambda y: str(y), x)), d)), end="" if inline else "\n")
+
+        if args["stream"]:
+            while data_in := sys.stdin.read(1):
+                logging.info("encoding input data: %s", repr(data_in))
+                data_out = encoder.encode(data_in, flush_filter=False)
+
+                # print out resulting data
+                logging.info("encoded as: %s", data_out)
+                print_encoded(data_out, inline=True)
+
+            logging.info("flushing filter contents")
+            data_out = encoder.encode("", flush_filter=True)
+
+        else:
+            data_in = "".join(sys.stdin.readlines())
+            logging.info("encoding input data: %s", repr(data_in))
+            data_out = encoder.encode(data_in)
+
+        # print out resulting data
+        logging.info("encoded as: %s", data_out)
+        print_encoded(data_out)
+
+    elif args["mode"] is OperationMode.DECODE:
+        # decoding mode - binary sequence on STDIN, ASCII characters to STDOUT
+        from convolutional_decoder import ConvolutionalDecoder
+        decoder = ConvolutionalDecoder(memory_stage_count, feedback_masks)
+
+        def print_best_decoded(d, inline: bool = False):
+            print(d[0][1], end="" if inline else "\n")
+
+        if args["stream"]:
+            while data_in := sys.stdin.read(8):
+                logging.info("decoding input data: %s", repr(data_in))
+                data_out = decoder.decode(data_in)
+
+                # print out resulting data
+                logging.info("most probable encoded results (cost, data): %s", data_out)
+                print_best_decoded(data_out, inline=True)
+
+            print()
+
+        else:
+            data_in = sys.stdin.readline().strip()
+
+            logging.info("decoding input data: %s", repr(data_in))
+            data_out = decoder.decode(data_in)
+
+            # print out resulting data
+            logging.info("most probable encoded results (cost, data): %s", data_out)
+            print_best_decoded(data_out)
+
+    else:
+        raise RuntimeError("Unknown operation mode selected.")
+
+
 if __name__ == '__main__':
     parser = ArgumentParser()
 
@@ -27,55 +91,25 @@ if __name__ == '__main__':
                              "[defaults: 5 53 46]")
     params.add_argument("--stream", action="store_true", help="run program in stream mode", )
 
-    args = parser.parse_args().__dict__
-    if not args["mode"]:
+    arguments = parser.parse_args().__dict__
+    if not arguments["mode"]:
         parser.error("mode option (either -e or -d) must be present")
 
-    if len(args["params"]) < 2:
+    if len(arguments["params"]) < 2:
         parser.error("invalid parameter specification")
 
-    memory_stage_count = args["params"][0]
-    feedback_masks = args["params"][1:]
+    memory_stage_count = arguments["params"][0]
+    feedback_masks = arguments["params"][1:]
 
-    log_level = logging.ERROR - min(args["verbose"], logging.ERROR // 10) * 10
+    log_level = logging.ERROR - min(arguments["verbose"], logging.ERROR // 10) * 10
     logging.basicConfig(
         format="%(asctime)s %(levelname)s (%(name)s): %(message)s",
         level=log_level,
         datefmt="%Y-%m-%dT%H:%M:%S%z",
     )
 
-    if args["mode"] is OperationMode.ENCODE:
-        from convolutional_encoder import ConvolutionalEncoder
-        encoder = ConvolutionalEncoder(memory_stage_count, feedback_masks)
+    try:
+        run(arguments)
 
-        if args["stream"]:
-            while data_in := sys.stdin.read(1):
-                logging.debug("encoding input data: '%s'", data_in)
-                data_out = encoder.encode(data_in, flush_filter=False)
-                # print out resulting data
-                print("".join(map(lambda x: str(x[0]) + str(x[1]), data_out)))
-
-            data_out = encoder.encode("", flush_filter=True)
-            # print out resulting data
-            print("".join(map(lambda x: str(x[0]) + str(x[1]), data_out)))
-
-        else:
-            data_in = "".join(sys.stdin.readlines())
-            logging.debug("encoding input data: '%s'", data_in)
-            data_out = encoder.encode(data_in)
-            # print out resulting data
-            print("".join(map(lambda x: str(x[0]) + str(x[1]), data_out)))
-
-    elif args["mode"] is OperationMode.DECODE:
-        from convolutional_decoder import ConvolutionalDecoder
-        decoder = ConvolutionalDecoder(memory_stage_count, feedback_masks)
-
-        data_in = sys.stdin.readline().strip()
-        logging.debug("decoding input data: '%s'", data_in)
-        data_out = decoder.decode(data_in)
-
-        result_cost, result = data_out[0]
-        print(result)
-
-    else:
-        raise RuntimeError("Unknown operation mode selected.")
+    except:
+        logging.exception("program encountered an error while running")

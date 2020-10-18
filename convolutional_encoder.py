@@ -33,6 +33,9 @@ class ConvolutionalEncoder(object):
         for char in data_in:
             # get ascii value of the character
             char_numeric = ord(char)
+            if char_numeric > 255:
+                raise RuntimeError("Unable to encode input character '{:s}' as ASCII character.".format(char))
+
             # convert to binary string and remove '0b' prefix
             char_binary_str = str(bin(char_numeric))[2:]
 
