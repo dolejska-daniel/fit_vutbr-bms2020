@@ -1,5 +1,6 @@
 import logging
 import typing
+import re
 from collections import deque
 
 from convolution_filter import ConvolutionFilter
@@ -9,7 +10,7 @@ logger = logging.getLogger("encoder")
 
 class ConvolutionalEncoder(object):
 
-    def __init__(self, stage_count: int, feedback_masks: typing.List[int]):
+    def __init__(self, stage_count: int, feedback_masks: typing.List[int], filter_input: bool = True):
         """
         Initializes convolutional encoder.
 
@@ -17,6 +18,11 @@ class ConvolutionalEncoder(object):
         :param feedback_masks: list of feedback masks of memory blocks
         """
         self.filter = ConvolutionFilter(stage_count, feedback_masks)
+        self.filter_input = filter_input
+
+    @classmethod
+    def filter_data_in(cls, data_in: str) -> str:
+        return "".join(re.findall(r"[A-z0-9]", data_in))
 
     @classmethod
     def str_to_int_binary(cls, data_in: str) -> typing.List[int]:
@@ -59,6 +65,10 @@ class ConvolutionalEncoder(object):
         :param flush_filter: should convolution filter values be flushed?
         :return:
         """
+        if self.filter_input:
+            # remove undesired input content
+            data_in = self.filter_data_in(data_in)
+
         # convert input to "binary" integers
         data_in_binary = self.str_to_int_binary(data_in)
         # reverse the order from MSB->LSB to LSB->MSB

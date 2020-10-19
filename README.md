@@ -13,8 +13,10 @@ Code is well commented, everything necessary should be contained within the sour
 ## Usage
 Program requires specification of operation mode `-e` for **encoding**, `-d` for **decoding**.
 Encoding mode expects ASCII characters on `STDIN`.
+Characters other than `[A-z0-9]` will be filtered out by default (this can be turned of using `--no-encoder-filter`).
 Those characters are encoded to binary sequence, which is output to `STDOUT` after encountering `EOF` on `STDIN`.
 Decoding mode expects `MSB->LSB` binary sequence on `STDIN`.
+Characters other than `[01]` will be filtered out and ignored.
 This sequence is then decoded to ASCII characters, which are then output to `STDOUT` after encoutering `EOF` on `STDIN`.
 ```
 python3.8 main.py {-e | -d}

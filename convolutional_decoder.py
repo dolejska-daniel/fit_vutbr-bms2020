@@ -1,4 +1,5 @@
 import logging
+import re
 from queue import PriorityQueue
 
 from utils import *
@@ -61,6 +62,10 @@ class ConvolutionalDecoder(object):
         self._lowest_iteration_cost[current_iteration][current_state] = current_cost
 
     @classmethod
+    def filter_data_in(cls, data_in: str) -> str:
+        return "".join(re.findall(r"[01]", data_in))
+
+    @classmethod
     def int_binary_to_str(cls, data_in: typing.List[int]) -> str:
         """
         Converts list of integers (1, 0) representing binary encoded characters
@@ -105,6 +110,8 @@ class ConvolutionalDecoder(object):
         :param max_result_count: maximum number of possible interpretations returned
         :return: decoded ASCII string
         """
+        # remove undesired input content
+        data_in = self.filter_data_in(data_in)
         # re-initialize inner decoder state
         self._initialize_decoder()
         # create initial state to process

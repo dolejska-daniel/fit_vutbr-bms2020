@@ -14,7 +14,7 @@ def run(args):
     if args["mode"] is OperationMode.ENCODE:
         # encoding mode - ASCII characters on STDIN, binary sequence to STDOUT
         from convolutional_encoder import ConvolutionalEncoder
-        encoder = ConvolutionalEncoder(memory_stage_count, feedback_masks)
+        encoder = ConvolutionalEncoder(memory_stage_count, feedback_masks, not args["no_encoder_filter"])
 
         def print_encoded(d, inline: bool = False):
             print("".join(map(lambda x: "".join(map(lambda y: str(y), x)), d)), end="" if inline else "\n")
@@ -90,6 +90,8 @@ if __name__ == '__main__':
                              "Y,Z and other values are feedback memory bit masks per each output bit) "
                              "[defaults: 5 53 46]")
     params.add_argument("--stream", action="store_true", help="run program in stream mode", )
+    params.add_argument("--no-encoder-filter", action="store_true",
+                        help="encoder will accept any ASCII characters as input", )
 
     arguments = parser.parse_args().__dict__
     if not arguments["mode"]:
