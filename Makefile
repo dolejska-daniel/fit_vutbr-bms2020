@@ -16,4 +16,4 @@ clean:
 	rm -f bms xdolej08.tar.gz
 
 pack:
-	tar -czvf xdolej08.tar.gz *.py Makefile
+	zip xdolej08.zip *.py Makefile
