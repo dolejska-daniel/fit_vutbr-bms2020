@@ -65,8 +65,7 @@ class ConvolutionalDecoder(object):
     def filter_data_in(cls, data_in: str) -> str:
         return "".join(re.findall(r"[01]", data_in))
 
-    @classmethod
-    def int_binary_to_str(cls, data_in: typing.List[int]) -> str:
+    def int_binary_to_str(self, data_in: typing.List[int]) -> str:
         """
         Converts list of integers (1, 0) representing binary encoded characters
         to ASCII string.
@@ -74,6 +73,13 @@ class ConvolutionalDecoder(object):
         :param data_in: binary sequence to be converted
         :return: ASCII string
         """
+        logger.info("converting decoded binary data: '%s'", state_to_str(data_in))
+
+        overhead_length = self.stage_count - 1
+        logger.debug("stripping filter overhead of %d bits: %s",
+            overhead_length, state_to_str(data_in[-overhead_length:]))
+
+        data_in = data_in[:-overhead_length]
         if len(data_in) < 8:
             # there is not enough bytes for whole byte
             return ""
@@ -82,16 +88,21 @@ class ConvolutionalDecoder(object):
         result = []
         # value of current byte
         byte_value = 0
+
         # for each bit in decoded binary sequence
         for bit_index, bit in enumerate(data_in):
             # does current bit belong to another byte?
             if bit_index % 8 == 0 and bit_index > 0:
+                logger.debug("converting current byte to ASCII character: %d -> %s", byte_value, chr(byte_value))
                 # convert current byte value to ASCII character
                 result.append(chr(byte_value))
                 # reset byte value
                 byte_value = 0
-                if bit_index + 8 > len(data_in):
+                logger.debug("data to be processed: '%s'", state_to_str(data_in)[bit_index + 1:])
+
+                if bit_index + 8 + 1 > len(data_in):
                     # there is not enough bytes for whole byte left
+                    logger.debug("there is %d extra bits, skipping", len(data_in) - bit_index - 1)
                     break
 
             # calculate value of current bit and sum it with current byte value
@@ -150,6 +161,8 @@ class ConvolutionalDecoder(object):
 
             # select observation in current state
             current_observation = observations_left[-observation_offset:]
+            logger.debug("current observation is %s", current_observation)
+
             # for each possible branch from current state do
             for possible_bit_value in [0, 1]:
                 # what would be the encoder output

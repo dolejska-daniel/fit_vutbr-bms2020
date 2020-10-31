@@ -101,7 +101,10 @@ if __name__ == '__main__':
         parser.error("invalid parameter specification")
 
     memory_stage_count = arguments["params"][0]
+    assert 1 <= memory_stage_count
+
     feedback_masks = arguments["params"][1:]
+    assert 1 <= len(feedback_masks)
 
     log_level = logging.ERROR - min(arguments["verbose"], logging.ERROR // 10) * 10
     logging.basicConfig(
