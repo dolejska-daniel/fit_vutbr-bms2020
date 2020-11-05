@@ -34,7 +34,7 @@ class ConvolutionFilter(object):
         """ Returns true is the filter is empty. """
         return not bool(self._memory)
 
-    def initialize(self, state: State = None):
+    def initialize(self, state: State = None, first_bit: int = 0):
         """
         Initializes filter state either to provided state or default state 0s.
 
@@ -44,7 +44,7 @@ class ConvolutionFilter(object):
             logger.critical("invalid initialization state vector %s", state)
             raise RuntimeError("Tried to initialize invalid filter state.")
 
-        self._memory = state if state else deque([0 for _ in range(self.stage_count)])
+        self._memory = state if state else deque([first_bit] + [0 for _ in range(self.stage_count - 1)])
         logger.debug("%s - convolution filter initialized", self)
 
     def insert_and_shift(self, memory_bit: int):
@@ -64,21 +64,16 @@ class ConvolutionFilter(object):
         # "shift" everything right
         self._memory.pop()
         logger.debug("%s - shifted right", self)
-
-    def output_for(self, current_bit: typing.Union[int, None]) -> typing.List[int]:
-        """
-        Encodes provided bit value based on current filter state.
-
-        :param current_bit: bit value (0, 1) to be encoded
-        :returns: encoded binary sequence
-        """
+    
+    @property
+    def output(self) -> typing.List[int]:
+        """ Calculates result for current filter state. """
         outputs = [0 for _ in self.feedback_masks]
-        current_state = [current_bit] + self.state if current_bit is not None else self.state
-        logger.debug("%s - calculating output with current state", current_state)
+        logger.debug("%s - calculating output with current state", self.state)
 
         # for each bit in convolution filter do
         # (filter bits are in MSB->LSB order)
-        for filter_bit, filter_bit_index in zip(current_state, range(len(current_state) - 1, -1, -1)):
+        for filter_bit, filter_bit_index in zip(self.state, range(len(self.state) - 1, -1, -1)):
             # calculate bit mask from current index
             filter_bit_value = pow(2, filter_bit_index)
 

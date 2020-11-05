@@ -100,7 +100,7 @@ if __name__ == '__main__':
     if len(arguments["params"]) < 2:
         parser.error("invalid parameter specification")
 
-    memory_stage_count = arguments["params"][0]
+    memory_stage_count = arguments["params"][0] + 1
     assert 1 <= memory_stage_count
 
     feedback_masks = arguments["params"][1:]

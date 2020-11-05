@@ -23,8 +23,10 @@ class ConvolutionalDecoder(object):
         self._states = all_states(stage_count)
         # generate table of encoder results in all possible states with all possible inputs
         self._emissions = emission_table(stage_count, feedback_masks)
+        logger.debug("calculated emission table: %s", self._emissions)
         # generate table of encoder state transitions between all possible states with all possible inputs
         self._transitions = transition_table(stage_count)
+        logger.debug("calculated transition table: %s", self._transitions)
 
         # initialize priority queue which will contain unprocessed states
         # going over encoder transitions and reverse-generating encoded data
@@ -39,6 +41,7 @@ class ConvolutionalDecoder(object):
 
     def _create_unprocessed_state(self, state_cost: int, current_state: str, data_out: typing.List[int], data_in: str):
         """ Creates new unprocessed state and stores it to priority queue (ordered by path cost). """
+        logger.debug("creating new branch to %s with cost %s", current_state, state_cost)
         self._unprocessed_states.put((state_cost, current_state, data_out, data_in))
 
     def _get_unprocessed_state(self) -> typing.Tuple[int, str, typing.List[int], str]:
@@ -82,6 +85,7 @@ class ConvolutionalDecoder(object):
         data_in = data_in[:-overhead_length]
         if len(data_in) < 8:
             # there is not enough bytes for whole byte
+            logger.warning("there is not enough bits for whole byte: %s", repr(state_to_str(data_in)))
             return ""
 
         # list of decoded ASCII characters
@@ -91,8 +95,11 @@ class ConvolutionalDecoder(object):
 
         # for each bit in decoded binary sequence
         for bit_index, bit in enumerate(data_in):
+            # calculate value of current bit and sum it with current byte value
+            byte_value += pow(2, bit_index % 8) * bit
+
             # does current bit belong to another byte?
-            if bit_index % 8 == 0 and bit_index > 0:
+            if bit_index % 8 == 7:
                 logger.debug("converting current byte to ASCII character: %d -> %s", byte_value, chr(byte_value))
                 # convert current byte value to ASCII character
                 result.append(chr(byte_value))
@@ -100,13 +107,10 @@ class ConvolutionalDecoder(object):
                 byte_value = 0
                 logger.debug("data to be processed: '%s'", state_to_str(data_in)[bit_index + 1:])
 
-                if bit_index + 8 + 1 > len(data_in):
+                if data_in[bit_index + 1:] and bit_index + 8 + 1 > len(data_in):
                     # there is not enough bytes for whole byte left
                     logger.debug("there is %d extra bits, skipping", len(data_in) - bit_index - 1)
                     break
-
-            # calculate value of current bit and sum it with current byte value
-            byte_value += pow(2, bit_index % 8) * bit
 
         # characters were decoded in reverse order
         result.reverse()
@@ -165,14 +169,14 @@ class ConvolutionalDecoder(object):
 
             # for each possible branch from current state do
             for possible_bit_value in [0, 1]:
+                # to which state would encoder transition in case of `possible_bit_value` input
+                next_state = self._transitions[current_state][possible_bit_value]
                 # what would be the encoder output
-                # if it were in `current_state` and received `possible_bit_value`
-                transition_observation = state_to_str(self._emissions[current_state][possible_bit_value])
+                # if it were in `next_state` (after receiving `possible_bit_value`)
+                transition_observation = state_to_str(self._emissions[next_state])
                 # what is the cost of this transition - how is the possible encoder output
                 # different from what I've received
                 transition_cost = hamming_distance(transition_observation, current_observation)
-                # to which state would encoder transition in case of `possible_bit_value` input
-                next_state = self._transitions[current_state][possible_bit_value]
 
                 # create new state to process
                 self._create_unprocessed_state(

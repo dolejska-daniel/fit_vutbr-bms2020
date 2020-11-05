@@ -36,11 +36,10 @@ def hamming_distance(param1: str, param2: str) -> int:
     return distance + abs(len(param1) - len(param2))
 
 
-def emission_table(stage_count: int, feedback_masks: typing.List[int]) \
-        -> typing.Dict[str, typing.Dict[int, typing.List[int]]]:
+def emission_table(stage_count: int, feedback_masks: typing.List[int]) -> typing.Dict[str, typing.List[int]]:
     """
     Creates table of encoder outputs for all possible states for given number
-    of stages, selected feedback masks and possible input values.
+    of stages and selected feedback masks.
     """
     from convolution_filter import ConvolutionFilter
     # create result table object
@@ -58,8 +57,7 @@ def emission_table(stage_count: int, feedback_masks: typing.List[int]) \
         source_state_key = state_to_str(source_state)
 
         # add output entries for given state with any possible input value
-        table[source_state_key][0] = _filter.output_for(0)
-        table[source_state_key][1] = _filter.output_for(1)
+        table[source_state_key] = _filter.output
 
     return table
 

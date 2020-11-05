@@ -82,7 +82,7 @@ class ConvolutionalEncoder(object):
 
         if self.filter.empty:
             # initialize convolution stages
-            self.filter.initialize()
+            self.filter.initialize(first_bit=data_in_binary.popleft())
 
         # until there is no content in input data list do
         while data_in_binary:
@@ -90,7 +90,7 @@ class ConvolutionalEncoder(object):
             current_bit = data_in_binary.popleft()
 
             # calculate encoder output for current data bit and filter state
-            data_out.appendleft(self.filter.output_for(current_bit))
+            data_out.appendleft(self.filter.output)
 
             # update convolution filter - shift to right and add current bit
             self.filter.insert_and_shift(current_bit)
@@ -98,7 +98,7 @@ class ConvolutionalEncoder(object):
         # until there is no content in convolution filter do
         while flush_filter and not self.filter.empty:
             # flush values in the filter state one by one
-            data_out.appendleft(self.filter.output_for(None))
+            data_out.appendleft(self.filter.output)
 
             # empty the filter bits
             self.filter.shift()
